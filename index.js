@@ -60,6 +60,26 @@ async function run() {
       res.send(bookings);
     }),
 
+    app.patch('/bookings/:id', async (req, res) => {
+        const id = req.params.id;
+        const query = {_id: new ObjectId(id)};
+        const appointmentUpdate = req.body;
+        const confirm = {
+          $set:{
+            status: appointmentUpdate.status
+          }
+        }
+        const result = await bookingCollections.updateOne(query, confirm);
+        res.send(result);
+    })
+
+    app.delete('/bookings/:id', async (req, res) => {
+      const id = req.params.id;
+      const query = {_id: new ObjectId(id)};
+      const booking = await bookingCollections.deleteOne(query);
+      res.send(booking)
+    })
+
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });

@@ -1,13 +1,13 @@
 const express = require('express');
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const app = express();
 const cors = require('cors');
 const port = process.env.PORT || 5000;
 require('dotenv').config()
 
 
-app.use(cors())
-app.use(express())
+app.use(cors());
+app.use(express.json());
 // zahid007
 // paX5hhySey9SfnBI
 
@@ -31,11 +31,35 @@ async function run() {
     await client.connect();
 
     const dieseasCollections = client.db("doctotDB").collection("dieseas");
+    const bookingCollections = client.db("doctotDB").collection("bookings");
 
     app.get('/appointment', async(req, res) => {
         const dieseas = await dieseasCollections.find().toArray();
         res.send(dieseas);
     })
+
+    app.get('/appointment/:id', async(req, res) => {
+      const id = req.params.id;
+      const query = {_id: new ObjectId(id) }
+      const book = await dieseasCollections.findOne(query);
+      res.send(book);
+    });
+
+    app.get('/bookings', async(req, res) => {
+      let query = {};
+      if(req.query?.email){
+        query = { email: req.query.email}
+      }
+      const bookings = await bookingCollections.find(query).toArray();
+      res.send(bookings);
+    });
+
+    app.post('/bookings', async (req, res) => {
+      const booking = req.body;
+      const bookings = await bookingCollections.insertOne(booking);
+      res.send(bookings);
+    }),
+
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });

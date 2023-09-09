@@ -1,4 +1,5 @@
 const express = require('express');
+const jwt = require('jsonwebtoken');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const app = express();
 const cors = require('cors');
@@ -25,6 +26,21 @@ const client = new MongoClient(uri, {
   }
 });
 
+const verifyJWT = (req, res, next) => {
+  const authorization = req.headers.authorization;
+  if(!authorization){
+    return res.status(401).send({error: true, message: "JWT not authorized"})
+  }
+  const token = authorization.split(' ')[1];
+  jwt.verify(token, process.env.JSON_TOKEN, (error, decode) => {
+    if(error){
+      return res.status(500).send({error: true, message:"Unauthorized"})
+    }
+    res.decode = decode;
+    next();
+  })
+}
+
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
@@ -33,6 +49,15 @@ async function run() {
     const dieseasCollections = client.db("doctotDB").collection("dieseas");
     const bookingCollections = client.db("doctotDB").collection("bookings");
 
+
+    // JWT
+    app.post('/jwt', (req, res) => {
+      const user = req.body;
+      const token = jwt.sign({email: user.email}, process.env.JSON_TOKEN, {expiresIn: '1h'})
+      res.send({token});
+    })
+
+    // Appointment
     app.get('/appointment', async(req, res) => {
         const dieseas = await dieseasCollections.find().toArray();
         res.send(dieseas);
@@ -45,7 +70,7 @@ async function run() {
       res.send(book);
     });
 
-    app.get('/bookings', async(req, res) => {
+    app.get('/bookings', verifyJWT, async(req, res) => {
       let query = {};
       if(req.query?.email){
         query = { email: req.query.email}
